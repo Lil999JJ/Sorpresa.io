@@ -4,13 +4,26 @@ const audio = document.getElementById('audio');
 const lyricsEl = document.getElementById('lyrics');
 let lines = []; // {time, orig, es}
 
+// Verificar que los elementos existen
+console.log('Audio element:', audio);
+console.log('Lyrics element:', lyricsEl);
+
 async function loadLyrics(){
   try{
-    const resp = await fetch('lyrics.json');
-    if(!resp.ok) throw new Error('No lyrics.json');
+    console.log('Intentando cargar lyrics.json...');
+    const resp = await fetch('./lyrics.json');
+    if(!resp.ok) {
+      console.warn('No se pudo cargar lyrics.json, usando letras por defecto');
+      throw new Error('No lyrics.json');
+    }
     const data = await resp.json();
-    lines = data;
+    console.log('Datos cargados:', data);
+    
+    // Si el JSON tiene doble array, usar el primer elemento
+    lines = Array.isArray(data[0]) ? data[0] : data;
+    console.log('Líneas procesadas:', lines.length);
   }catch(e){
+    console.warn('Error cargando lyrics:', e);
     // default placeholder lines (no copyright lyrics)
     lines = [
   { "time": 25.1, "orig": "Todo cambió" },
@@ -68,18 +81,21 @@ async function loadLyrics(){
 
     ];
   }
+  console.log('Total de líneas cargadas:', lines.length);
   renderLines();
 }
 
 function renderLines(){
+  console.log('Renderizando líneas...', lines.length);
   lyricsEl.innerHTML = '';
   lines.forEach((ln, idx) => {
     const div = document.createElement('div');
     div.id = 'line-' + idx;
-    div.className = 'line';
+    div.className = 'line visible'; // Agregar clase visible por defecto
     div.innerHTML = `<b>${escapeHtml(ln.orig || '')}</b><i>${escapeHtml(ln.es || '')}</i>`;
     lyricsEl.appendChild(div);
   });
+  console.log('Líneas renderizadas en el DOM');
 }
 
 // helper to escape HTML
@@ -231,15 +247,13 @@ function makeHeartPulse(){
 // Start after user interaction (browsers require user gesture)
 document.addEventListener('click', async function onFirstClick(){
   document.removeEventListener('click', onFirstClick);
-  await loadLyrics();
   initAudioAnalysis();
-  createBackgroundHearts();
 });
 
-// also load lyrics early (in case user opens file directly)
+// Cargar letras inmediatamente
 loadLyrics();
 
-// Iniciar corazones inmediatamente para prueba
+// Iniciar corazones inmediatamente
 setTimeout(() => {
   createBackgroundHearts();
 }, 1000);
